@@ -266,6 +266,30 @@ def verify(path, sheet=None, expect_freeze=NO_FREEZE, min_rows=0, profile=None):
         check(bottom_ok, "三线表栏目线", "" if bottom_ok else "表头行无下横线")
         check(last_bottom, "三线表底线", "" if last_bottom else "末行无底线")
         check(v_ok, "三线表无竖线", v_bad)
+
+        # 三线表不得有任何单元格底色（印刷与黑白复印要求）。
+        # 早先只查线条，漏掉了「三线表被套上深蓝表头/隔行底纹」这种错版——
+        # 那是最常见的混用方式（拿商务表模板改用三线表 profile 时就会这样）。
+        def solid_hex(cell):
+            h = hexof(cell.fill.fgColor)
+            if h is None or h in ("00000000", "00FFFFFF"):
+                return None
+            return h
+
+        painted = []
+        for rr in range(1, maxr + 1):
+            for j in range(1, maxc + 1):
+                cell = ws.cell(rr, j)
+                if isinstance(cell, MergedCell) or cell.value is None:
+                    continue
+                h = solid_hex(cell)
+                if h:
+                    painted.append("R%dC%d=#%s" % (rr, j, h))
+                    break
+            if painted:
+                break
+        check(not painted, "三线表无底色（含表头与数据区）",
+              "检出填充 %s" % painted[:3] if painted else "")
     else:
         bs = b.get("border_style")
         bc = b.get("border_color")

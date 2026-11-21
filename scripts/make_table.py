@@ -131,22 +131,40 @@ def load_csv_table(path):
 
 
 def load_xlsx_table(path, src_sheet=None, header_row=1):
-    """读源 xlsx。注意：不用 read_only=True（见文件头「已知坑」）。"""
+    """读源 xlsx。注意：不用 read_only=True（见文件头「已知坑」）。
+
+    `--header-row` 是**物理行号**（用户在 Excel 里看到的行号），与跳不跳空行无关。
+    早先实现先丢弃空白行再按序号取第 N 条，导致表头上方有空白行时取错行
+    （2026-11-21 全面测试实测：加一行空行后 --header-row 4 取到了首条数据行，
+    表头整行丢失且被当成数据）。改为保留 (行号, 值) 配对后按物理行号定位。
+    """
     wb = load_workbook(path, data_only=True)
     ws = wb[src_sheet] if src_sheet else wb[wb.sheetnames[0]]
-    values = []
-    for r in ws.iter_rows(values_only=True):  # 一次性取值，避开 read_only/EmptyCell 类问题
+    numbered = []  # [(物理行号, 值列表)]
+    for idx, r in enumerate(ws.iter_rows(values_only=True), 1):
         if r is None or all(v is None or str(v).strip() == "" for v in r):
             continue
-        values.append(list(r))
-    if len(values) < header_row:
-        raise SystemExit("ERROR: 源表行数不足 --header-row=%d" % header_row)
-    headers = [("" if v is None else str(v).strip()) for v in values[header_row - 1]]
+        numbered.append((idx, list(r)))
+    if not numbered:
+        raise SystemExit("ERROR: 源表为空（无任何非空行）：%s" % path)
+    if numbered[-1][0] < header_row or header_row < 1:
+        raise SystemExit("ERROR: 源表只有 %d 行，不足 --header-row=%d" % (
+            numbered[-1][0], header_row))
+    head = None
+    for pos, (rowno, vals) in enumerate(numbered):
+        if rowno == header_row:
+            head = (pos, vals)
+            break
+    if head is None:
+        raise SystemExit(
+            "ERROR: --header-row=%d 指向的是一空行（该行没有内容），无法作表头" % header_row)
+    pos, head_vals = head
+    headers = [("" if v is None else str(v).strip()) for v in head_vals]
     while headers and headers[-1] == "":
         headers.pop()  # 去掉尾部空列
     ncol = len(headers)
     rows = []
-    for r in values[header_row:]:
+    for rowno, r in numbered[pos + 1:]:
         r = list(r[:ncol]) + [None] * max(0, ncol - len(r))
         rows.append(r[:ncol])
     return headers, rows
@@ -416,6 +434,11 @@ def run(src=None, out=None, sheet=None, title=None, note=None, src_sheet=None,
         header_row=1, no_freeze=False, profile=None):
     spec = load_spec(profile=profile)
     prof_name = resolve_profile(profile)
+    # 输入校验前置：文件不存在时 open() 会抛 FileNotFoundError 并把完整堆栈
+    # 打到用户面前（2026-11-21 全面测试实测），这里先给一句人话再退出。
+    if not os.path.isfile(src):
+        print("ERROR: 源文件不存在：%s" % src, file=sys.stderr)
+        return 1
     ext = os.path.splitext(src)[1].lower()
     if ext in (".xlsx", ".xlsm") and \
             os.path.normcase(os.path.abspath(src)) == os.path.normcase(os.path.abspath(out)):
@@ -428,10 +451,29 @@ def run(src=None, out=None, sheet=None, title=None, note=None, src_sheet=None,
     elif ext in (".xlsx", ".xlsm"):
         headers, rows = load_xlsx_table(src, src_sheet, header_row)
     else:
-        raise SystemExit("ERROR: 不支持的输入扩展名 %s（支持 .md / .csv / .xlsx）" % ext)
+        print("ERROR: 不支持的输入扩展名 %s（支持 .md / .csv / .xlsx）" % ext, file=sys.stderr)
+        return 1
     if not sheet:
         stem = os.path.splitext(os.path.basename(src))[0]
         sheet = re.sub(r'[\[\]:*?/\\]', "_", stem)[:31] or "数据"
+    else:
+        # 显式传入的表名也要清洗：Excel 禁止 [ ] : * ? / \ 七个字符，
+        # 且上限 31 字符。不清洗时 xlsxwriter/openpyxl 会抛 ValueError 或
+        # 生成 Excel 打不开的文件（2026-11-21 全面测试实测抛栈）。
+        cleaned = re.sub(r'[\[\]:*?/\\]', "_", str(sheet))
+        if cleaned != sheet:
+            print("[提示] 工作表名含 Excel 禁用字符（[ ] : * ? / \\），已替换为下划线：%s" % cleaned,
+                  file=sys.stderr)
+        if len(cleaned) > 31:
+            print("[提示] 工作表名超 31 字符上限，已截断：%s" % cleaned[:31], file=sys.stderr)
+            cleaned = cleaned[:31]
+        sheet = cleaned or "数据"
+    # 输出目录必须存在：openpyxl 保存不会自动建目录，不存在时抛 FileNotFoundError
+    out_dir = os.path.dirname(os.path.abspath(out))
+    if not os.path.isdir(out_dir):
+        print("ERROR: 输出目录不存在：%s（请先创建或改用已存在的目录）" % out_dir,
+              file=sys.stderr)
+        return 1
     info = build_workbook(headers, rows, out, sheet, title, note, no_freeze, spec)
     meta = profile_meta(profile)
     print("profile=%s（%s）" % (prof_name, meta.get("title", "")))
