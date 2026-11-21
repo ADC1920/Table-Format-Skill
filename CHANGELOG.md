@@ -25,7 +25,7 @@
 | `data-list` | 数据字典、字段清单、主数据、BOM | 左对齐表头，浅灰细框，无底纹，等线/Consolas，禁数据区合并 |
 
 **规范库**（`references/standards/`）：六域调研 **395 条**，机器可查的 jsonl + 人读的
-index.md 与 6 个分域详表。置信度 high 289 / medium 105 / low 1。
+index.md 与 6 个分域详表。置信度 high 256 / medium 136 / low 3。
 
 | 领域 | 条数 | 覆盖 |
 | --- | --- | --- |
