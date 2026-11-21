@@ -196,7 +196,7 @@ python scripts/render_pages.py 成品.xlsx                     # 出图目检
 - **交付形态门禁**：`check_delivery.py` 查默认表名残留 / 空表 / 公式错误值（存在时必跑）。
 - **规范库**：`query_standards.py` 检索；`build_standards_catalog.py` 由调研 jsonl 合并生成 index.md / 分域详表 / standards.jsonl。
 - **回归与自检**：`run_profile_regression.py` 全 profile × 多负载形状端到端；`check_skill_consistency.py` 文档实物一致性（profile 数、SKILL.md 覆盖、基线键集合、规范库条数）。
-- **全面测试**：`tests/run_all_tests.py` 是总入口，跑四套自带自检 + 六套独立测试共 301 项断言（CLI 契约 17、输入格式与异常形态 26、八 profile 样式真值 182、冻结与环境变量 20、门禁负向 26、工具与规范库 30）。`--only <套件名>` 单选，`--no-baseline` 跳过自检。临时产物落系统临时目录，不污染技能目录。
+- **全面测试**：`tests/run_all_tests.py` 是总入口，跑四套自带自检 + 八套独立测试共 321 项断言（CLI 契约 17、输入格式与异常形态 26、八 profile 样式真值 182、冻结与环境变量 20、门禁负向 26、工具与规范库 30、编码与源文件形态 23、工程属性 17）。`--only <套件名>` 单选，`--no-baseline` 跳过自检。临时产物落系统临时目录，不污染技能目录。
 - **门禁与同步**：规格改动时先改 `profiles/*.yaml` 或 `table-format.yaml`，再同步 SKILL.md 的速选表与 `spec_loader.DEFAULT_SPEC`（`check_skill_consistency.py` 会抓漂移）。
 - **openpyxl 注记（读源一律不用 read_only）**：read_only 模式下 `ReadOnlyWorksheet` 缺 `dimensions` / `column_dimensions` / `row_dimensions` 等属性，且迭代产生的 `EmptyCell` 无 `.row` 属性（稀疏行直接报错）——读源工作簿用普通模式加载，或 `iter_rows(values_only=True)` 一次性取值（2026-10-15 / 10-16 两次实测踩坑，勿回退）。
 

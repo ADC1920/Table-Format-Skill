@@ -94,10 +94,10 @@ python scripts/run_profile_regression.py           # 8 profile × 9 负载形状
 python scripts/check_skill_consistency.py          # 7 项：文档实物一致性
 ```
 
-## 全面测试（301 项断言）
+## 全面测试（321 项断言）
 
 ```bash
-python tests/run_all_tests.py                      # 全部：四套自检 + 六套独立测试
+python tests/run_all_tests.py                      # 全部：四套自检 + 八套独立测试
 python tests/run_all_tests.py --only styles        # 只跑指定套件
 python tests/run_all_tests.py --no-baseline        # 跳过自带自检
 ```
@@ -110,6 +110,8 @@ python tests/run_all_tests.py --no-baseline        # 跳过自带自检
 | `test_freeze_env.py` | 20 | 冻结矩阵（行数 × auto/always/never × `--no-freeze`）、三层环境变量优先级 |
 | `test_negative.py` | 26 | 逐类破坏产物，验证门禁抓得到（表头四破坏、标题二、数据三、冻结二、底纹二、三线表三…） |
 | `test_tools_lib.py` | 30 | check_delivery 五类、render_pages 四类、规范库质量、query_standards 十一种调用 |
+| `test_encoding_source.py` | 23 | BOM / GBK / CRLF / 控制字符；md 无分隔行·列数不齐·多表块；CSV 引号字段；xlsx 合并单元格·公式·日期·布尔·空白行交错；极值数值 |
+| `test_engineering.py` | 17 | 幂等性（内容哈希）、八 profile 差异化、源文件只读、性能（5000 行 2.9 秒）、并发无串味、元数据无泄漏 |
 
 临时产物落系统临时目录，不污染技能目录。渲染项需 LibreOffice 与 pymupdf，缺失时该项失败但其余套件不受影响。
 

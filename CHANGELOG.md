@@ -112,6 +112,32 @@ index.md 与 6 个分域详表。置信度 high 256 / medium 136 / low 3。
   被压到 5 字符，文字折成两行末行孤字。新增 `_col_min_widths()`：按表头宽与 80 分位
   数据宽算每列内容下限，压缩时按「下限比例」等比而非全局等比，短列不再被长列拖累。
 
+### 修复（第二轮测试补充：20 项断言）
+
+- **非 UTF-8 编码源文件抛堆栈**：中文 Windows 上 Excel 另存的 CSV 常是 GBK，
+  `open(encoding="utf-8")` 直接抛 `UnicodeDecodeError` 带整屏堆栈。新增 `_read_text()`：
+  UTF-8 BOM → UTF-8 → GBK → GB18030 → latin-1 逐级回退，md 与 csv 读取共用。
+- **超 15 位整数丢精度**：Excel 数值只保证 15 位有效数字，`12345678901234567890`
+  写入后被按 float 存成 `1.234567890123457e+19`。这类值多为订单号/身份证/条码，
+  改为超过 15 位按文本保留（与既有的前导零保护同一思路）。
+- **`tests/_env.py` 临时目录落到只读位置**：早先用 `sys.executable` 所在目录推导，
+  Python 装在 Program Files 或便携版时抛 `PermissionError`。改用 `tempfile.gettempdir()`。
+  该缺陷被总入口掩盖（总入口显式传了 `TF_TEST_WORKDIR`），单跑某个套件才复现——
+  教训：测试的默认路径也要被测试。
+
+### 新增测试套件
+
+- `tests/test_encoding_source.py`（23 项）：BOM / GBK / CRLF / 控制字符；
+  md 无分隔行、列数不齐、多表格块、空表头、长文本包围；
+  CSV 引号含逗号与换行、转义引号、单列；
+  xlsx 合并单元格、公式单元格、日期、布尔、空白行交错；
+  极值数值、纯空格、零值。
+- `tests/test_engineering.py`（17 项）：幂等性（xlsx 内容哈希，非字节 md5——
+  zip 成员排列非确定，两次写出可能差几字节但内容完全一致）、
+  八 profile 产物两两不同且样式签名各异、源文件只读保护、
+  性能（1000 行 0.94 秒 / 5000 行 2.92 秒，线性）、
+  并发（8 进程同时生成无串味）、产出元数据无本机信息泄漏。
+
 ### 验证
 
 - `make_table.py --selftest`：10 项 PASS（含三线表线条、无 profile 报错、未知类型报错）

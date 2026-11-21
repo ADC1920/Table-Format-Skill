@@ -42,6 +42,7 @@ gov-table / quality-table / hr-table / data-list。
 
 import argparse
 import csv
+import io
 import math
 import os
 import re
@@ -77,18 +78,43 @@ def maybe_num(s):
     if re.fullmatch(r"[+-]?\d+", t):
         if len(t.lstrip("+-")) > 1 and t.lstrip("+-")[0] == "0":
             return s  # 前导零，按文本保留
+        # Excel 数值只保证 15 位有效数字，更长的整数写入后会被按 float 存
+        # 而丢精度（12345678901234567890 → 1.234567890123457e+19）。
+        # 这类值多为订单号/身份证/条码，按文本保留比「看起来是数字但对不上」更安全。
+        digits = t.lstrip("+-")
+        if len(digits) > 15:
+            return s
         return int(t)
     if re.fullmatch(r"[+-]?\d+\.\d+", t):
         return float(t)
     return s
 
 
+def _read_text(path):
+    """读文本文件，UTF-8 优先，失败依次回退 GBK / GB18030 / latin-1。
+
+    中文 Windows 上 Excel 另存的 CSV 常是 GBK，直接 open(encoding="utf-8")
+    会抛 UnicodeDecodeError 并打出一整屏堆栈（2026-11-21 第二轮测试实测）。
+    GB18030 是 GBK 的超集，放它前面会掩盖真正的 GBK 问题，故按 UTF-8 →
+    GBK → GB18030 → latin-1 顺序尝试，最后一个保证不失败。
+    """
+    with open(path, "rb") as f:
+        raw = f.read()
+    if raw.startswith(b"\xef\xbb\xbf"):   # UTF-8 BOM
+        return raw[3:].decode("utf-8", errors="replace")
+    for enc in ("utf-8", "gbk", "gb18030", "latin-1"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
+
+
 # ---------- 输入解析 ----------
 
 def load_md_table(path):
     """取 Markdown 中第一个 GFM 表格块。返回 (headers, rows)。"""
-    with open(path, encoding="utf-8") as f:
-        lines = f.read().splitlines()
+    lines = _read_text(path).splitlines()
     block = []
     for ln in lines:
         s = ln.strip()
@@ -114,15 +140,18 @@ def load_md_table(path):
 
 
 def load_csv_table(path):
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        sample = f.read(4096)
-        f.seek(0)
-        try:
-            dialect = csv.Sniffer().sniff(sample, delimiters=",\t;")
-        except csv.Error:
-            dialect = csv.excel
-        reader = csv.reader(f, dialect)
-        table = [list(r) for r in reader if any(str(c).strip() for c in r)]
+    # 用 _read_text 统一处理编码回退（UTF-8 / GBK / GB18030 / latin-1），
+    # 不能直接 open(encoding="utf-8-sig")——GBK 存的中文 CSV 会抛堆栈。
+    text = _read_text(path)
+    if not text.strip():
+        raise SystemExit("ERROR: %s 为空" % path)
+    sample = text[:4096]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",\t;")
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.reader(io.StringIO(text, newline=""), dialect)
+    table = [list(r) for r in reader if any(str(c).strip() for c in r)]
     if not table:
         raise SystemExit("ERROR: %s 为空" % path)
     headers = [str(c).strip() for c in table[0]]
@@ -274,7 +303,21 @@ def _fit_widths_to_page(widths, pr, cw, headers=None, rows=None):
     if sum(mins) >= max_units:
         # 列太多，连内容下限都装不下——按「下限的比例」等比压，
         # 这样宽内容列缩得多、短列缩得少，视觉上更接近均衡。
-        return hard_shrink(widths, max_units, mins)
+        # 同时给出明确提示：这种表在一页里本来就排不开，压列宽只是止损，
+        # 真正的解法是换横版或缩字号（脚本不自动降字号，会连锁改行高与页数）。
+        forced = hard_shrink(widths, max_units, mins)
+        head_short = []
+        for j, hd in enumerate(headers):
+            need = display_width(hd) + cw["pad"]
+            if forced[j] < need:
+                head_short.append("%s(需%d实%d)" % (hd, need, forced[j]))
+        print("[提示] 内容总需求超出纸张可用宽度（下限合计 %.0f > 可用 %.0f），"
+              "已按比例压缩列宽；该表建议改用横版或减小字号。"
+              % (sum(mins), max_units), file=sys.stderr)
+        if head_short:
+            print("[提示] 下列表头在压缩后已有列装不下，必然折行：%s"
+                  % "、".join(head_short), file=sys.stderr)
+        return forced
 
     # 富余额度：先全给下限，再把剩余按各列「上限-下限」比例分配
     budget = max_units - sum(mins)

@@ -39,6 +39,8 @@ SUITES = [
     ("freeze", "test_freeze_env.py", "冻结矩阵与环境变量优先级"),
     ("negative", "test_negative.py", "门禁有效性（负向）"),
     ("tools", "test_tools_lib.py", "工具与规范库质量"),
+    ("encoding", "test_encoding_source.py", "编码与源文件形态边界"),
+    ("engineering", "test_engineering.py", "工程属性（幂等/差异/性能/并发）"),
 ]
 
 BASELINE = [

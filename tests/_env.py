@@ -7,14 +7,19 @@
 import os
 import subprocess
 import sys
+import tempfile
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.dirname(TESTS_DIR)
 SCRIPTS = os.path.join(SKILL, "scripts")
 PROFILES = os.path.join(SKILL, "profiles")
 
+# 临时目录兜底用系统 temp。早先用 sys.executable 所在目录推导，
+# 便携版/Program Files 安装下会落到只读位置并抛 PermissionError
+# （2026-11-21 第二轮测试实测：单独跑某个套件即复现，总入口因传了
+#  TF_TEST_WORKDIR 而掩盖了它）。
 BASE = os.environ.get("TF_TEST_WORKDIR") or os.path.join(
-    os.path.dirname(os.path.abspath(sys.executable)), "table-format-tests")
+    tempfile.gettempdir(), "table-format-tests")
 DATA = os.path.join(BASE, "data")
 OUT = os.path.join(BASE, "out")
 PNG = os.path.join(BASE, "png")
