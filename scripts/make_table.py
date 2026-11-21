@@ -454,6 +454,18 @@ def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
     zebra_start = int(b.get("zebra_start") or 2)
     nrows = len(rows)
 
+    # 样式对象预建并复用：openpyxl 给单元格赋 font/border/alignment 时会做
+    # 样式去重比较（Serialisable.__eq__/__hash__），每格新建实例会让 10 万行
+    # 的表从「线性 60 秒」退化到「215 秒」。数据只有左中右三种对齐，样式各一种，
+    # 预建后整表复用同一实例即可。
+    align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    align_right = Alignment(horizontal="right", vertical="center", wrap_text=True)
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    fixed_align = {"left": align_left, "right": align_right, "center": align_center}
+    total_font = Font(name=font_name, size=data_size, bold=True,
+                      color=f.get("data_color"))
+    last_border = Border(bottom=bottom_side) if three_line else data_border
+
     for i, row in enumerate(rows):
         fill = None
         # zebra_start 为 1 基的数据行序号；i 为 0 基
@@ -462,24 +474,20 @@ def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
             fill = alt_fill
         est = 1
         is_total = bool(b.get("total_row_bold")) and i == nrows - 1
+        row_border = last_border if (three_line and i == nrows - 1) else data_border
+        row_font = total_font if is_total else data_font
         for j in range(1, ncol + 1):
             v = row[j - 1] if j - 1 < len(row) else None
             c = ws.cell(r, j, v)
-            c.font = data_font
+            c.font = row_font
             if fill:
                 c.fill = fill
-            if three_line:
-                # 三线表：仅最后一行补底线
-                c.border = Border(bottom=bottom_side) if i == nrows - 1 else data_border
+            c.border = row_border
+            if body_align == "auto":
+                al = align_right if isinstance(v, (int, float)) else align_left
             else:
-                c.border = data_border
-            if is_total:
-                c.font = Font(name=font_name, size=data_size, bold=True,
-                              color=f.get("data_color"))
-            al = body_align
-            if al == "auto":
-                al = "right" if isinstance(v, (int, float)) else "left"
-            c.alignment = Alignment(horizontal=al, vertical="center", wrap_text=True)
+                al = fixed_align.get(body_align, align_left)
+            c.alignment = al
             est = max(est, est_lines(v, widths[j - 1]))
         ws.row_dimensions[r].height = max(rh["min_data"], est * rh["line"] + 4)
         r += 1
@@ -527,14 +535,46 @@ def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
 
     wb.save(out_path)
 
-    # 落盘后回读一次冻结值核对（SKILL.md 明确要求）
-    chk = load_workbook(out_path)
-    got = chk[chk.sheetnames[0]].freeze_panes
+    # 落盘后回读一次冻结值核对（SKILL.md 明确要求）。
+    # 直接从 xlsx 的 zip 里读第一个工作表的 <pane> 标签，而不是 load_workbook
+    # 重解析整张表——普通模式回读 10 万行要多花约 30 秒，read_only 模式又
+    # 没有 sheet_view（ReadOnlyWorksheet 缺该属性，属已知坑）。读 zip 内
+    # 一小段 XML 是唯一既快又能拿到 topLeftCell 的方式。
+    got = _read_freeze_from_zip(out_path)
     ok = (got == freeze)
     return {
         "out": out_path, "sheet": sheet_name, "rows": nrows, "cols": ncol,
         "head_row": head_row, "freeze": freeze, "freeze_readback": got, "freeze_ok": ok,
     }
+
+
+def _read_freeze_from_zip(path):
+    """从 xlsx 的 zip 直接读第一个工作表的冻结锚点（topLeftCell）。
+
+    返回 "A3" 形式的字符串；无冻结返回 None。
+    解析失败时退回普通 load_workbook（慢但保证正确）。
+    """
+    try:
+        import zipfile
+        with zipfile.ZipFile(path) as z:
+            # 找出第一个 worksheet 部件：xl/worksheets/sheet1.xml 通常就是它
+            names = [n for n in z.namelist()
+                     if n.startswith("xl/worksheets/sheet") and n.endswith(".xml")]
+            if not names:
+                return None
+            # 取编号最小的那个，与 workbook 里第一个 sheet 对应
+            def num(n):
+                m = re.search(r"sheet(\d+)\.xml$", n)
+                return int(m.group(1)) if m else 10 ** 6
+            names.sort(key=num)
+            xml = z.read(names[0]).decode("utf-8", errors="replace")
+        pane = re.search(r"<pane[^>]*topLeftCell=\"([A-Z]+\d+)\"", xml)
+        if pane:
+            return pane.group(1)
+        return None
+    except Exception:
+        chk = load_workbook(path)
+        return chk[chk.sheetnames[0]].freeze_panes
 
 
 def run(src=None, out=None, sheet=None, title=None, note=None, src_sheet=None,

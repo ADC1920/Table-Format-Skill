@@ -41,6 +41,7 @@ SUITES = [
     ("tools", "test_tools_lib.py", "工具与规范库质量"),
     ("encoding", "test_encoding_source.py", "编码与源文件形态边界"),
     ("engineering", "test_engineering.py", "工程属性（幂等/差异/性能/并发）"),
+    ("round3", "test_round3.py", "xlsm / 外部链接 / 大数据量"),
 ]
 
 BASELINE = [
