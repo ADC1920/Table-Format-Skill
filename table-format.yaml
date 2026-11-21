@@ -85,7 +85,6 @@ print:
   title_rows: auto
   margin_cm: null
   gridlines: false
-  page_numbers: null
 
 number:
   format_auto: false

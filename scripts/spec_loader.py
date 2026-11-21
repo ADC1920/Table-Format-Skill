@@ -109,7 +109,6 @@ DEFAULT_SPEC = {
         "title_rows": "auto",
         "margin_cm": None,
         "gridlines": False,
-        "page_numbers": None,
     },
     "number": {
         "format_auto": False,     # 财务/统计表开启：整数千分位、负数括号

@@ -107,7 +107,7 @@ base_spec = {
     "col_width": {"min": 8, "max": 52, "pad": 3, "head_factor": 1.6, "text_cap": 60},
     "freeze": {"enabled": "auto", "min_rows": 20, "anchor": "auto"},
     "print": {"orientation": "landscape", "paper": "A4", "title_rows": "auto",
-              "margin_cm": None, "gridlines": False, "page_numbers": None},
+              "margin_cm": None, "gridlines": False},
     "number": {"format_auto": False, "align": "right", "zero_as_dash": False},
 }
 
