@@ -311,6 +311,38 @@ def verify(path, sheet=None, expect_freeze=NO_FREEZE, min_rows=0, profile=None):
                     break
             check(b_ok, "全表边框（%s #%s）" % (bs, bc), b_bad)
 
+    # ---- 数字格式（spec.number）----
+    # 此前 number 规格只存在于 yaml、代码不读，finance/stats 宣称的千分位与
+    # 零值短横全是空头承诺而 verify 也不查——配置失效 + 门禁漏抓的双重失真。
+    # 这里按 spec 断言：开了 format_auto 的 profile，数值单元格必须有数字格式；
+    # 关掉的 profile 数值单元格必须保持 General。
+    num = spec.get("number") or {}
+    fmt_on = bool(num.get("format_auto"))
+    num_checked = 0
+    bad_fmt = ""
+    for rr in data_rows:
+        for j in range(1, maxc + 1):
+            c = ws.cell(rr, j)
+            v = c.value
+            if not (isinstance(v, (int, float)) and not isinstance(v, bool)):
+                continue
+            num_checked += 1
+            nf = (c.number_format or "General")
+            if fmt_on and nf == "General":
+                bad_fmt = "R%dC%d 数值单元格无数字格式（期望千分位）" % (rr, j)
+                break
+            if (not fmt_on) and nf != "General":
+                bad_fmt = "R%dC%d 该 profile 未开 format_auto，却设了 %r" % (rr, j, nf)
+                break
+        if bad_fmt:
+            break
+    if num_checked == 0:
+        skip("数字格式", "数据区无纯数值单元格")
+    else:
+        check(not bad_fmt,
+              "数字格式（format_auto=%s，检查 %d 个数值格）" % (fmt_on, num_checked),
+              bad_fmt)
+
     # ---- 隔行底纹 ----
     zebra_color = b.get("zebra_color")
     if not b.get("zebra") or not zebra_color:

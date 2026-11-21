@@ -103,4 +103,6 @@ print:
 number:
   format_auto: true
   align: right
-  zero_as_dash: true
+  # 统计表零值须填「0」不得留空或替成短横（规范库 t1-027、t1-049），
+  # 故关掉 zero_as_dash；财务表才用短横（t2-047）。
+  zero_as_dash: false

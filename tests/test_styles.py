@@ -25,7 +25,13 @@ SRC = os.path.join(DATA, "style-src.csv")
 with open(SRC, "w", encoding="utf-8", newline="") as f:
     f.write("型号,克重,门幅,备注\n")
     for i in range(1, 7):
-        f.write("TEL-%03d,%d,138,第%d行备注\n" % (i, 100 + i, i))
+        # 第 3、6 行克重为 0，用于验证 finance-table 的零值短横
+        # 与 stats-table 的零值填 0（两者规范依据不同，见规范库 t2-047 / t1-027）
+        kz = 0 if i in (3, 6) else 100 + i
+        f.write("TEL-%03d,%d,138,第%d行备注\n" % (i, kz, i))
+    # 加一行负数与上千万的金额列，验证千分位与负号
+    f.write("TEL-007,-52341.5,138,负数行\n")
+    f.write("TEL-008,1234567.89,138,大额行\n")
 
 results = []
 
@@ -211,6 +217,48 @@ for prof in names:
     else:
         check(prof, "无隔行底纹（yaml 关闭）", not ends(row2.fill.fgColor, "F7F9FD"),
               "实得 %s" % hexof(row2.fill.fgColor))
+
+    # --- 数字格式（spec.number）---
+    # 这组断言是为抓「配置写了但代码不读」的假实现：2026-11-21 实测发现
+    # finance/stats 宣称千分位与零值短横，而 number_format 恒为 General。
+    ncfg = raw.get("number") or {} if isinstance(raw, dict) else {}
+    if "number" in raw:
+        ncfg = raw["number"] or {}
+    fmt_on = bool(ncfg.get("format_auto"))
+    zero_dash = bool(ncfg.get("zero_as_dash"))
+    num_cells = []
+    for rr in range(head_row + 1, ws.max_row + 1):
+        for j in range(1, ws.max_column + 1):
+            v = ws.cell(rr, j).value
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                num_cells.append((rr, j))
+    if num_cells:
+        if fmt_on:
+            nofmt = [(rr, j) for rr, j in num_cells
+                     if (ws.cell(rr, j).number_format or "General") == "General"]
+            check(prof, "数字格式：format_auto 已落到单元格", not nofmt,
+                  "N=%d 未设格式 %s" % (len(num_cells), nofmt[:3]))
+        else:
+            wrongly = [(rr, j) for rr, j in num_cells
+                       if (ws.cell(rr, j).number_format or "General") != "General"]
+            check(prof, "数字格式：未开 format_auto 时保持 General", not wrongly,
+                  "N=%d 误设 %s" % (len(num_cells), wrongly[:3]))
+    # 零值短横：源数据里第 3、6 行克重为 0，开了 zero_as_dash 的 profile
+    # 应把这些 0 变成文字「-」；没开的应仍为数值 0。
+    if zero_dash:
+        dash_cells = [(rr, j)
+                      for rr in range(head_row + 1, ws.max_row + 1)
+                      for j in range(1, ws.max_column + 1)
+                      if ws.cell(rr, j).value == "-"]
+        check(prof, "零值短横：源有 0 时产出为「-」", len(dash_cells) > 0,
+              "检出短横 %d 处" % len(dash_cells))
+    else:
+        dash_cells = [(rr, j)
+                      for rr in range(head_row + 1, ws.max_row + 1)
+                      for j in range(1, ws.max_column + 1)
+                      if ws.cell(rr, j).value == "-"]
+        check(prof, "零值不替短横：未开 zero_as_dash 时 0 原样保留",
+              len(dash_cells) == 0, "误检出短横 %d 处" % len(dash_cells))
 
     # --- 打印设置 ---
     check(prof, "print_title_rows=表头行",

@@ -209,6 +209,54 @@ def est_lines(value, col_width):
     return max(1, math.ceil(w / usable))
 
 
+def _is_numeric(v):
+    """是否数值单元格。bool 是 int 的子类，要单独排除（True/False 不该套数字格式）。"""
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _number_format(num):
+    """按 spec.number 生成 Excel 数字格式串；不需要时返回 None。
+
+    `format_auto: true` 的语义是「财务/统计场景的规范数字格式」，具体为：
+      - 千分位分组
+      - 固定两位小数（财务报表按分计）
+      - 负数用负号：中国官方报表口径（规范库 t2-046），
+        **不用英美惯例的圆括号**——这一条推翻了本技能早期 SKILL.md 里
+        「负数括号」的写法，那份文档本身写错了
+      - 零值显示「-」：由 zero_as_dash 单独控制（它是把 0 换成文字「-」，
+        不走格式串，因为格式串的第三段只影响显示、单元格值仍是 0，
+        下游做汇总时会与「无此项」混淆）
+
+    负数段显式重复正数段的格式，是为了避免 Excel 把负数渲染成
+    `-1234.5`（无千分位）。
+    """
+    if not num.get("format_auto"):
+        return None
+    # 三段式：正数;负数;零。负数段显式带千分位，否则 Excel 渲染成 -1234.5。
+    # 零值段用 "-"，与 zero_as_dash 的语义一致（两者都表达「这一格是 0」）。
+    return '#,##0.00;-#,##0.00;-'
+
+
+def _display_width_of(v, num_fmt):
+    """单元格显示宽度：数值且会套千分位格式时，按格式化后的文本估算。
+
+    只处理本项目会生成的格式 `#,##0.00;-#,##0.00;-`：
+    千分位每组加一个逗号，固定两位小数，负数多一个负号。
+    其他格式或文本原样返回原始显示宽度。
+    """
+    if not num_fmt or not _is_numeric(v):
+        return display_width(v)
+    if v == 0:
+        return 1                      # 零值格式段渲染成单个「-」
+    s = "%.2f" % abs(float(v))        # 固定两位小数
+    intpart, _, frac = s.partition(".")
+    groups = (len(intpart) - 1) // 3
+    width = len(intpart) + groups + 1 + len(frac)   # 整数位 + 逗号 + 小数点 + 小数位
+    if float(v) < 0:
+        width += 1                    # 负号
+    return width
+
+
 def _side(hexv, style):
     """按 spec 画一条边；style 为 None 表示不画线。"""
     if not style or not hexv:
@@ -437,12 +485,18 @@ def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
     r = head_row + 1
 
     # 列宽：按表头与数据的最大显示宽度显式设置
+    # 数值列要按「格式化之后」的宽度算，不是原始值宽度：加上千分位与两位小数后
+    # 1234567.89 会显示成 1,234,567.89（12 字符 vs 原始 10 字符），按原始宽度
+    # 算列宽会让数字贴边框（2026-11-21 财务表渲染实测）。
+    num_fmt_preview = _number_format(spec.get("number") or {})
     widths = []
     for j in range(1, ncol + 1):
         wmax = display_width(headers[j - 1]) * cw["head_factor"]
         for row in rows:
             if j - 1 < len(row) and row[j - 1] is not None:
-                wmax = max(wmax, min(display_width(row[j - 1]), cw["text_cap"]))
+                v = row[j - 1]
+                disp = _display_width_of(v, num_fmt_preview)
+                wmax = max(wmax, min(disp, cw["text_cap"]))
         widths.append(int(min(max(wmax + cw["pad"], cw["min"]), cw["max"])))
 
     # 页宽约束：列宽合计超过纸张可用宽度时必须等比压缩。
@@ -466,6 +520,16 @@ def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
                       color=f.get("data_color"))
     last_border = Border(bottom=bottom_side) if three_line else data_border
 
+    # 数字格式（spec.number）：此前整套 number 规格只写在 yaml 里、代码从不读，
+    # 导致 finance-table / stats-table 宣称的「千分位、零值短横」全是空头承诺
+    # （2026-11-21 实测 number_format 恒为 General）。这里按 spec 真正落到
+    # 单元格的 number_format 上。
+    # 依据规范库：t2-048 千分位属实务惯例、全表统一；t2-047 零值短横；
+    # t2-046 **负数用负号不用圆括号**（中国官方报表口径，英美惯例才用括号）。
+    num = spec.get("number") or {}
+    num_fmt = _number_format(num)
+    zero_as_dash = bool(num.get("zero_as_dash"))
+
     for i, row in enumerate(rows):
         fill = None
         # zebra_start 为 1 基的数据行序号；i 为 0 基
@@ -478,16 +542,29 @@ def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
         row_font = total_font if is_total else data_font
         for j in range(1, ncol + 1):
             v = row[j - 1] if j - 1 < len(row) else None
+            was_zero = False
+            # 零值短横：把数值 0 换成文字「-」。只换真正的 0，
+            # 不动空单元格（空白表示「无此项」，与「实测为零」语义不同，
+            # 见规范库 t1-049 的空值三态）。
+            if zero_as_dash and _is_numeric(v) and v == 0:
+                v = "-"
+                was_zero = True
             c = ws.cell(r, j, v)
             c.font = row_font
             if fill:
                 c.fill = fill
             c.border = row_border
             if body_align == "auto":
-                al = align_right if isinstance(v, (int, float)) else align_left
+                # 换成短横的零值原是数字，仍按右对齐，否则财务表里
+                # 同一列会出现「数字右对齐、零值左对齐」的错位。
+                al = align_right if (_is_numeric(v) or was_zero) else align_left
             else:
                 al = fixed_align.get(body_align, align_left)
             c.alignment = al
+            # 数字格式只给真正的数值单元格；文本列（含前导零编码、
+            # 换成短横的零值）保持 General，否则会被当成数字显示成科学计数。
+            if num_fmt and _is_numeric(v):
+                c.number_format = num_fmt
             est = max(est, est_lines(v, widths[j - 1]))
         ws.row_dimensions[r].height = max(rh["min_data"], est * rh["line"] + 4)
         r += 1
