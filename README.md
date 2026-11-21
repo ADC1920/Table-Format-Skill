@@ -94,6 +94,25 @@ python scripts/run_profile_regression.py           # 8 profile × 9 负载形状
 python scripts/check_skill_consistency.py          # 7 项：文档实物一致性
 ```
 
+## 全面测试（301 项断言）
+
+```bash
+python tests/run_all_tests.py                      # 全部：四套自检 + 六套独立测试
+python tests/run_all_tests.py --only styles        # 只跑指定套件
+python tests/run_all_tests.py --no-baseline        # 跳过自带自检
+```
+
+| 套件 | 项数 | 覆盖 |
+|---|---|---|
+| `test_cli.py` | 17 | 退出码契约、profile 缺失/未知、同路径防护、sheet 名清洗、输出目录检查 |
+| `test_formats.py` | 26 | md / csv（逗号·制表符·分号）/ xlsx（表头行偏移、多工作表）；单列·30 列·空值·前导零·负数·超长文本·换行·转义 |
+| `test_styles.py` | 182 | 八 profile 逐项真值核验（**独立读 yaml 对照，不依赖 verify 自述**） |
+| `test_freeze_env.py` | 20 | 冻结矩阵（行数 × auto/always/never × `--no-freeze`）、三层环境变量优先级 |
+| `test_negative.py` | 26 | 逐类破坏产物，验证门禁抓得到（表头四破坏、标题二、数据三、冻结二、底纹二、三线表三…） |
+| `test_tools_lib.py` | 30 | check_delivery 五类、render_pages 四类、规范库质量、query_standards 十一种调用 |
+
+临时产物落系统临时目录，不污染技能目录。渲染项需 LibreOffice 与 pymupdf，缺失时该项失败但其余套件不受影响。
+
 ## 已知限制
 
 - 表格内的公式计算不由本技能负责：`make_table.py` 只排版，不写公式也不重算。

@@ -195,13 +195,44 @@ _A4_WIDTH_CM = 21.0
 _DEFAULT_MARGIN_CM = 1.5
 
 
-def _fit_widths_to_page(widths, pr, cw):
-    """列宽合计超过纸张可用宽度时等比压缩，避免打印横向拆页。
+def _col_min_widths(headers, rows, widths, cw):
+    """每列的内容下限：装得下表头、或装得下多数数据值。
 
-    等比而不是砍最宽列的原因：砍单列会把那一列压成竖排文字，
-    等比压缩只是让所有列都窄一点，配合自动换行仍可读。
-    压到最小列宽仍放不下时（列数过多）无法挽救，返回时保持最小列宽，
-    由调用方在打印设置里改用横向或更大纸张。
+    等比压缩只看总宽比例，会把「天丝锦麻」这种 4 字值所在的窄列压到 6 字符，
+    迫使文字折成两行、末行只剩一个字（2026-11-21 视觉验收实测）。
+    这里给每列算一个下限，压缩时优先压长列、不动短列。
+
+    取法：表头宽（中文按 2 计）与「80 分位数据宽」取较大者，再加内边距。
+    用分位数而非最大值，避免个别超长单元格把整列下限抬高。
+    """
+    import math as _m
+    mins = []
+    for j in range(len(headers)):
+        head_w = display_width(headers[j]) if j < len(headers) else 0
+        vals = []
+        for r in rows:
+            if j < len(r) and r[j] is not None:
+                vals.append(display_width(r[j]))
+        if vals:
+            vals.sort()
+            q80 = vals[min(len(vals) - 1, int(_m.ceil(len(vals) * 0.8)) - 1)]
+        else:
+            q80 = 0
+        need = max(head_w, q80) + cw["pad"]
+        mins.append(int(min(max(need, cw["min"]), widths[j] if j < len(widths) else need)))
+    return mins
+
+
+def _fit_widths_to_page(widths, pr, cw, headers=None, rows=None):
+    """列宽合计超过纸张可用宽度时压缩，避免打印横向拆页。
+
+    压缩策略（从「等比」改为「保住下限后按富余等比」）：
+      1. 先用 _col_min_widths 算出每列的内容下限；
+      2. 下限之和已超页宽 → 说明列太多，只能等比硬压（无解，接受折行）；
+      3. 否则把「页宽 − 下限之和」的额度按各列富余量等比分配。
+
+    这样短列（如「类型」装 4 个汉字）不会被长列拖累压到折行，
+    而长列（如「面料特点」）本来就要折行，压它代价最小。
     """
     orientation = str(pr.get("orientation") or "landscape").lower()
     paper = str(pr.get("paper") or "A4").upper()
@@ -221,15 +252,48 @@ def _fit_widths_to_page(widths, pr, cw):
     total = sum(widths)
     if total <= max_units:
         return widths
-    scale = max_units / float(total)
-    shrunk = [max(int(w * scale), cw["min"]) for w in widths]
-    # 最小列宽兜底后若仍超宽，按超出比例再压一次（可能低于 min，这是必要取舍：
-    # 宁可列窄也不能让表散成两页）
-    total2 = sum(shrunk)
-    if total2 > max_units:
-        scale2 = max_units / float(total2)
-        shrunk = [max(int(w * scale2), 4) for w in shrunk]
-    return shrunk
+
+    def hard_shrink(ws_list, cap, floor_list=None):
+        """兜底：等比压缩到 cap 以内。
+
+        floor_list 给定时按「下限」等比——保留下限的相对比例，
+        使短列不会被长列拖累压到只剩几个字符（实测「类型」列内容 4 个汉字，
+        等比硬压后只剩 5 字符，文字折成两行末行一孤字）。
+        """
+        base = floor_list if floor_list else ws_list
+        t = sum(base)
+        if t <= 0:
+            return ws_list
+        s = cap / float(t)
+        return [max(int(w * s), 4) for w in base]
+
+    if headers is None or rows is None:
+        return hard_shrink(widths, max_units)
+
+    mins = _col_min_widths(headers, rows, widths, cw)
+    if sum(mins) >= max_units:
+        # 列太多，连内容下限都装不下——按「下限的比例」等比压，
+        # 这样宽内容列缩得多、短列缩得少，视觉上更接近均衡。
+        return hard_shrink(widths, max_units, mins)
+
+    # 富余额度：先全给下限，再把剩余按各列「上限-下限」比例分配
+    budget = max_units - sum(mins)
+    slack = [max(w - m, 0) for w, m in zip(widths, mins)]
+    total_slack = sum(slack)
+    if total_slack <= 0:
+        return mins
+    out = []
+    for m, s in zip(mins, slack):
+        got = int(m + budget * (s / float(total_slack)))
+        # 分配额可能因取整低于下限（budget 很小时尤其明显），这里兜住
+        out.append(max(got, m))
+    # 兜底：取整加总可能略超页宽，按超出量从最宽列扣（不碰下限）
+    while sum(out) > max_units:
+        idx = max(range(len(out)), key=lambda k: out[k] - mins[k])
+        if out[idx] <= mins[idx]:
+            break
+        out[idx] -= 1
+    return out
 
 
 def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
@@ -341,7 +405,7 @@ def build_workbook(headers, rows, out_path, sheet_name, title=None, note=None,
     # 页宽约束：列宽合计超过纸张可用宽度时必须等比压缩。
     # 不压的直接后果是打印时横向拆页，标题合并行跟着跨页，
     # 第二页顶部留下一条空的标题色带（2026-11-21 真实业务表视觉验收实测）。
-    widths = _fit_widths_to_page(widths, pr, cw)
+    widths = _fit_widths_to_page(widths, pr, cw, headers, rows)
 
     body_align = (b.get("align") or "auto").lower()
     zebra_start = int(b.get("zebra_start") or 2)
