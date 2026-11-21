@@ -1,0 +1,20 @@
+# 缓存与临时产物
+__pycache__/
+*.pyc
+*.pyo
+*.bak-*
+.pytest_cache/
+.DS_Store
+Thumbs.db
+
+# 渲染与测试输出
+*.pdf
+*.png
+*.jpg
+tmp/
+.tmp/
+
+# 本地环境
+.venv/
+venv/
+*.egg-info/

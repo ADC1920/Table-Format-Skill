@@ -1,0 +1,98 @@
+# 质量记录表（quality-table）
+# ---------------------------------------------------------------
+# 适用：检验记录表、抽样检验表、FMEA 与控制计划、实验室检测报告、
+#       工程验收记录、计量校准记录、设备台账、8D/5Why 分析表。
+#
+# 规范依据：ISO 9001 成文信息要求、IATF 16949 质量记录、GB/T 2828.1
+# 计数抽样检验程序、CNAS-CL01 检测报告要求、GB 50300 工程施工质量验收。
+#
+# 关键约束（记录表与数据表的结构差异）：
+#   - 必须有可追溯要素：表号、版本号、页码、编制/审核/批准签署栏
+#   - 表头区含产品/批次/日期/检验员等固定字段，不只列业务字段
+#   - 判定栏单独成列（合格/不合格/让步接收），不得并入备注
+#   - 空白单元格加斜线或「—」，防止事后补填
+# ---------------------------------------------------------------
+
+profile:
+  name: quality-table
+  title: 质量记录表
+  standard: ISO 9001、IATF 16949、GB/T 2828.1、CNAS-CL01、GB 50300
+  source: 质量体系成文信息要求与检验检测报告规范
+  note: 检验记录、抽样检验、FMEA/控制计划、实验室报告、工程验收、计量校准
+
+font:
+  name: 宋体
+  western: Arial
+  data_size: 10
+  data_color: "000000"
+  note_color: "000000"
+
+header:
+  fill: "E7E6E6"
+  font_color: "000000"
+  font_name: 黑体
+  size: 10
+  bold: true
+  align: center
+  valign: center
+  wrap: true
+  border_style: thin
+  border_color: "000000"
+
+title:
+  fill: null
+  font_color: "000000"
+  size: 14
+  bold: true
+  align: center
+  merge: true
+  border: false
+
+note:
+  size: 9
+  color: "000000"
+  align: left
+  merge: true
+
+body:
+  align: auto
+  border_style: thin
+  border_color: "000000"
+  zebra: false
+  zebra_color: null
+  zebra_start: 2
+  total_row_bold: false
+
+rules:
+  three_line: false
+  top_pt: 1.5
+  header_pt: 1.0
+  bottom_pt: 1.5
+  vertical: true
+
+row_height:
+  min_data: 22
+  title_base: 26
+  title_line: 20
+  note_base: 18
+  head_base: 26
+  line: 15.0
+
+col_width:
+  min: 7
+  max: 40
+  pad: 2
+  head_factor: 1.6
+  text_cap: 40
+
+freeze:
+  enabled: auto
+  min_rows: 20
+  anchor: auto
+
+print:
+  orientation: landscape
+  paper: A4
+  title_rows: auto
+  margin_cm: 2.0
+  gridlines: true

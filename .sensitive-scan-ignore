@@ -1,0 +1,12 @@
+# 敏感扫描豁免清单（table-format 公开仓）
+#
+# 豁免项均为工具功能所必需的路径字面量，不含本机私有信息：
+#
+# render_pages.py 需要探测 LibreOffice 的安装位置才能把 xlsx 转 PDF 再转 PNG。
+# Windows 上 LibreOffice 的默认安装目录是固定公开路径（Program Files），
+# 属于软件事实而非本机隐私，无法改成相对路径。同理，docstring 里的
+# %TEMP% 示例与 UNC 说明是文档内容，不是真实访问的网络共享。
+#
+# 格式：<glob> <规则id|*>
+scripts/render_pages.py path.windows
+scripts/render_pages.py path.unc

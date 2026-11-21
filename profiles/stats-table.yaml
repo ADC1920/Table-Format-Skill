@@ -1,0 +1,106 @@
+# 统计表（stats-table）
+# ---------------------------------------------------------------
+# 适用：统计公报、统计年报、普查数据表、调查汇总表、指标监测表。
+#
+# 规范依据：GB/T 1.1-2020 标准化文件表格编排、《统计法》与统计报表制度、
+# GB/T 15835-2011《出版物上数字用法》、国家统计局统计表式规范。
+#
+# 统计表的核心结构是三段式表头：总标题（表号+表名）在表上方，
+# 纵栏标题（列头含计量单位）在中间，横行标题（行头）在左侧。
+# 主词（分组维度）在左、宾词（指标）在右，这是统计表与一般数据表的区别。
+#
+# 关键约束：
+#   - 计量单位必须写在表头，（万元）（%）这类括注不得省略
+#   - 合计行置于表末，加粗或加线区分
+#   - 数字右对齐、小数点对齐；缺失数据用「…」或「—」并加注说明
+#   - 资料来源置于表下方，注明口径、时点、调查方法
+# ---------------------------------------------------------------
+
+profile:
+  name: stats-table
+  title: 统计表
+  standard: GB/T 1.1-2020、GB/T 15835-2011、统计报表制度
+  source: 标准化工作导则表格编排条款与统计表式通行规范
+  note: 统计公报、年报、普查与调查汇总、指标监测
+
+font:
+  name: 宋体
+  western: Arial
+  data_size: 10
+  data_color: "000000"
+  note_color: "000000"
+
+header:
+  fill: "E7E6E6"
+  font_color: "000000"
+  font_name: 宋体
+  size: 10
+  bold: true
+  align: center
+  valign: center
+  wrap: true
+  border_style: thin
+  border_color: "000000"
+
+title:
+  fill: null
+  font_color: "000000"
+  size: 14
+  bold: true
+  align: center
+  merge: true
+  border: false
+
+note:
+  size: 9
+  color: "000000"
+  align: left
+  merge: true
+
+body:
+  align: auto
+  border_style: thin
+  border_color: "000000"
+  zebra: false
+  zebra_color: null
+  zebra_start: 2
+  total_row_bold: true
+
+rules:
+  three_line: false
+  top_pt: 1.5
+  header_pt: 1.0
+  bottom_pt: 1.5
+  vertical: true
+
+row_height:
+  min_data: 18
+  title_base: 24
+  title_line: 18
+  note_base: 16
+  head_base: 24
+  line: 14.0
+
+col_width:
+  min: 6
+  max: 42
+  pad: 2
+  head_factor: 1.5
+  text_cap: 48
+
+freeze:
+  enabled: auto
+  min_rows: 20
+  anchor: auto
+
+print:
+  orientation: landscape
+  paper: A4
+  title_rows: auto
+  margin_cm: 2.0
+  gridlines: false
+
+number:
+  format_auto: true
+  align: right
+  zero_as_dash: true

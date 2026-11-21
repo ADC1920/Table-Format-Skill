@@ -1,0 +1,98 @@
+# 人事表单（hr-table）
+# ---------------------------------------------------------------
+# 适用：员工花名册、考勤表、绩效评估表、薪酬表、招聘需求表、
+#       应聘登记表、培训签到表、培训效果评估表。
+#
+# 规范依据：个人信息保护法（最小必要与目的限定）、劳动合同法对用工记录的
+# 要求、人社部人事档案管理规范。人事表是唯一涉及敏感个人信息的高风险表格类型。
+#
+# 关键约束：
+#   - 身份证号、银行账号、薪酬等敏感字段必须标注密级并要求权限控制
+#   - 表尾必须有填表说明、数据用途告知与保管期限
+#   - 工号唯一且不复用；离职记录保留不删除（劳动关系举证需要）
+#   - 表单类表格（填写用）须留空值示例行，不得预填真实数据
+# ---------------------------------------------------------------
+
+profile:
+  name: hr-table
+  title: 人事表单
+  standard: 个人信息保护法、劳动合同法、人社部人事档案规范
+  source: 个人信息最小必要原则与人事档案管理通行做法
+  note: 花名册、考勤、绩效、薪酬、招聘、培训等人事管理表格
+
+font:
+  name: 宋体
+  western: Arial
+  data_size: 10
+  data_color: "000000"
+  note_color: "000000"
+
+header:
+  fill: "D6E4F0"
+  font_color: "000000"
+  font_name: 黑体
+  size: 10
+  bold: true
+  align: center
+  valign: center
+  wrap: true
+  border_style: thin
+  border_color: "000000"
+
+title:
+  fill: null
+  font_color: "000000"
+  size: 14
+  bold: true
+  align: center
+  merge: true
+  border: false
+
+note:
+  size: 9
+  color: "000000"
+  align: left
+  merge: true
+
+body:
+  align: auto
+  border_style: thin
+  border_color: "000000"
+  zebra: true
+  zebra_color: "F2F2F2"
+  zebra_start: 2
+  total_row_bold: false
+
+rules:
+  three_line: false
+  top_pt: 1.5
+  header_pt: 1.0
+  bottom_pt: 1.5
+  vertical: true
+
+row_height:
+  min_data: 22
+  title_base: 26
+  title_line: 20
+  note_base: 18
+  head_base: 24
+  line: 15.0
+
+col_width:
+  min: 7
+  max: 38
+  pad: 2
+  head_factor: 1.5
+  text_cap: 40
+
+freeze:
+  enabled: auto
+  min_rows: 20
+  anchor: auto
+
+print:
+  orientation: landscape
+  paper: A4
+  title_rows: auto
+  margin_cm: 2.0
+  gridlines: false

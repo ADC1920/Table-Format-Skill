@@ -1,0 +1,96 @@
+# 数据清单表（data-list）
+# ---------------------------------------------------------------
+# 适用：数据字典、字段清单、主数据表、BOM 物料清单、商品主数据、
+#       配置项清单、待办清单等「一行一条记录」的机器可读表格。
+#
+# 与其它 profile 的区别：这类表的第一读者是程序与数据透视表，不是人眼。
+# 因此约束重点在「结构可用」而非「视觉美观」：
+#   - 一维表结构：一行一条记录，一行不得含多值（禁止「甲、乙」并列）
+#   - 首行必为字段名，字段名不得含空格、单位、换行
+#   - 数据区严禁合并单元格（破坏筛选排序）、严禁空行
+#   - 不用隔行底纹与深色表头，避免导出为 CSV 时残留样式干扰
+# ---------------------------------------------------------------
+
+profile:
+  name: data-list
+  title: 数据清单表
+  standard: '-'
+  source: 数据整备与主数据管理通行规范
+  note: 数据字典、字段清单、主数据、BOM、商品主数据、配置项清单
+
+font:
+  name: 等线
+  western: Consolas
+  data_size: 10
+  data_color: "000000"
+  note_color: "595959"
+
+header:
+  fill: "F2F2F2"
+  font_color: "000000"
+  font_name: 黑体
+  size: 10
+  bold: true
+  align: left
+  valign: center
+  wrap: true
+  border_style: thin
+  border_color: "BFBFBF"
+
+title:
+  fill: null
+  font_color: "000000"
+  size: 13
+  bold: true
+  align: left
+  merge: true
+  border: false
+
+note:
+  size: 9
+  color: "595959"
+  align: left
+  merge: true
+
+body:
+  align: auto
+  border_style: thin
+  border_color: "BFBFBF"
+  zebra: false
+  zebra_color: null
+  zebra_start: 2
+  total_row_bold: false
+
+rules:
+  three_line: false
+  top_pt: 1.0
+  header_pt: 0.5
+  bottom_pt: 1.0
+  vertical: true
+
+row_height:
+  min_data: 18
+  title_base: 22
+  title_line: 16
+  note_base: 15
+  head_base: 22
+  line: 14.0
+
+col_width:
+  min: 6
+  max: 60
+  pad: 2
+  head_factor: 1.5
+  text_cap: 80
+
+freeze:
+  enabled: auto
+  min_rows: 20
+  anchor: auto
+
+print:
+  orientation: landscape
+  paper: A4
+  title_rows: auto
+  margin_cm: 1.5
+  gridlines: true

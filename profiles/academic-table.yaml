@@ -1,0 +1,93 @@
+# 学术三线表（academic-table）
+# ---------------------------------------------------------------
+# 适用：学位论文、期刊投稿、科技报告、学术会议论文中的表格。
+#
+# 规范依据：GB/T 7713.1（学位论文编写规则）、GB/T 7713.2-2022（学术论文
+# 编写规则）、GB/T 7713.3-2014（科技报告编写规则）、GB/T 1.1-2020 表格编排。
+# 通行做法为三线表：只有顶线、栏目线、底线，不画竖线，无底色无隔行底纹。
+#
+# 与商务表的根本冲突：三线表禁止竖线与色块（印刷与黑白复印要求），
+# 商务表的深蓝表头与隔行底纹在此必须全部关闭。
+# ---------------------------------------------------------------
+
+profile:
+  name: academic-table
+  title: 学术三线表
+  standard: GB/T 7713.1、GB/T 7713.2-2022、GB/T 7713.3-2014
+  source: 学位论文与学术论文编写规则中的表格条款
+  note: 学位论文、期刊论文、科技报告、会议论文中的表格
+
+font:
+  name: 宋体
+  western: Times New Roman
+  data_size: 10.5
+  data_color: "000000"
+  note_color: "000000"
+
+header:
+  fill: null
+  font_color: "000000"
+  font_name: 宋体
+  size: 10.5
+  bold: false
+  align: center
+  valign: center
+  wrap: true
+  border_style: null
+  border_color: null
+
+title:
+  fill: null
+  font_color: "000000"
+  size: 10.5
+  bold: false
+  align: center
+  merge: true
+  border: false
+
+note:
+  size: 9
+  color: "000000"
+  align: left
+  merge: true
+
+body:
+  align: auto
+  border_style: null
+  border_color: null
+  zebra: false
+  zebra_color: null
+  zebra_start: 2
+  total_row_bold: false
+
+rules:
+  three_line: true
+  top_pt: 1.5
+  header_pt: 0.75
+  bottom_pt: 1.5
+  vertical: false
+
+row_height:
+  min_data: 18
+  title_base: 20
+  title_line: 16
+  note_base: 15
+  head_base: 20
+  line: 14.5
+
+col_width:
+  min: 6
+  max: 45
+  pad: 2
+  head_factor: 1.4
+  text_cap: 50
+
+freeze:
+  enabled: never
+  min_rows: 20
+
+print:
+  orientation: portrait
+  paper: A4
+  title_rows: auto
+  gridlines: false

@@ -1,0 +1,53 @@
+# 通用商务表（business-table）
+# ---------------------------------------------------------------
+# 适用：内部管理表、台账清单、销售运营表、采购表、项目表、会议表、
+#       汇报材料附表等一切「没有行业强制规范」的独立表格文件。
+#
+# 这是 v1.x 唯一一种样式的正式命名：深蓝表头 #1F3864 + 白字加粗 +
+# 隔行底纹 #F7F9FD + 全表细边框 #B4C6E7 + 黑体。历史交付全部属于此类，
+# 选它可复现旧版产出。
+#
+# 与其它 profile 的区别：商务表追求扫读效率，表头重、底纹分带、
+# 数据区不强调合计行；学术/财务/政务表另有约束。
+# ---------------------------------------------------------------
+
+profile:
+  name: business-table
+  title: 通用商务表
+  standard: '-'
+  source: table-format v1.x 既定样式（2026-11-21 命名为 business-table）
+  note: 内部管理表、台账清单、运营采购项目表等无行业强制规范的独立表格
+
+font:
+  name: 黑体
+  western: Arial
+  data_size: 10
+  data_color: "262626"
+
+header:
+  fill: "1F3864"
+  font_color: "FFFFFF"
+  size: 12
+  bold: true
+  align: center
+
+title:
+  fill: "D9E2F3"
+  font_color: "1F3864"
+  size: 16
+  bold: true
+  align: center
+
+body:
+  align: auto
+  zebra: true
+  zebra_color: "F7F9FD"
+  zebra_start: 2
+
+freeze:
+  enabled: auto
+  min_rows: 20
+
+print:
+  orientation: landscape
+  paper: A4

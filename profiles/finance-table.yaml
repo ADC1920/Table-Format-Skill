@@ -1,0 +1,104 @@
+# 财务报表（finance-table）
+# ---------------------------------------------------------------
+# 适用：资产负债表、利润表、现金流量表、所有者权益变动表、报表附注、
+#       管理报表、预算表、成本费用明细表、财务比率分析表。
+#
+# 规范依据：企业会计准则第 30 号——财务报表列报（财会〔2026〕11号修订，
+# 利润表五分类）、财政部《企业会计准则——应用指南》报表格式、证监会
+# 《公开发行证券的公司信息披露内容与格式准则第 2 号——年度报告》。
+#
+# 关键约束：
+#   - 数字右对齐、小数点对齐、千分位分隔；负数用括号而非负号
+#   - 零值显示为「-」；货币单位在表头标注，全表不再重复
+#   - 报表主表通常不设隔行底纹（密集数字下底纹反而干扰读数）
+#   - 报表主表不设合并标题行（表名即报表名称，与表号一并置于表上方）
+# ---------------------------------------------------------------
+
+profile:
+  name: finance-table
+  title: 财务报表
+  standard: 企业会计准则第30号、证监会年报准则第2号
+  source: 财政部会计准则应用指南报表格式与证券披露格式准则
+  note: 四张主表、报表附注、管理报表、预算表、财务分析表
+
+font:
+  name: 宋体
+  western: Arial
+  data_size: 10
+  data_color: "000000"
+  note_color: "000000"
+
+header:
+  fill: "D9E2F3"
+  font_color: "000000"
+  font_name: 宋体
+  size: 10
+  bold: true
+  align: center
+  valign: center
+  wrap: true
+  border_style: thin
+  border_color: "000000"
+
+title:
+  fill: null
+  font_color: "000000"
+  size: 14
+  bold: true
+  align: center
+  merge: true
+  border: false
+
+note:
+  size: 9
+  color: "000000"
+  align: left
+  merge: true
+
+body:
+  align: auto
+  border_style: thin
+  border_color: "000000"
+  zebra: false
+  zebra_color: null
+  zebra_start: 2
+  total_row_bold: true
+
+rules:
+  three_line: false
+  top_pt: 1.5
+  header_pt: 0.5
+  bottom_pt: 1.5
+  vertical: true
+
+row_height:
+  min_data: 18
+  title_base: 24
+  title_line: 18
+  note_base: 16
+  head_base: 22
+  line: 14.0
+
+col_width:
+  min: 6
+  max: 40
+  pad: 2
+  head_factor: 1.4
+  text_cap: 45
+
+freeze:
+  enabled: auto
+  min_rows: 20
+  anchor: auto
+
+print:
+  orientation: portrait
+  paper: A4
+  title_rows: auto
+  margin_cm: 2.0
+  gridlines: false
+
+number:
+  format_auto: true
+  align: right
+  zero_as_dash: true

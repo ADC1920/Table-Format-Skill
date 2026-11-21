@@ -1,0 +1,93 @@
+# table-format 内部基线规格（default）
+# ---------------------------------------------------------------
+# 本文件不是可选表格类型，只作为 profiles/*.yaml 的字段继承来源。
+# 脚本不接受 --profile default；要出表必须从 profiles/ 里选一个类型。
+#
+# 取值与 v1.x 的硬编码常量一致（深蓝表头 + 隔行底纹），
+# 这样 business-table 等 profile 的产出与历史交付保持可复现。
+# ---------------------------------------------------------------
+
+version: "2.0.0"
+
+font:
+  name: 黑体
+  western: Arial
+  data_size: 10
+  data_color: "262626"
+  note_color: "595959"
+
+header:
+  fill: "1F3864"
+  font_color: "FFFFFF"
+  font_name: 黑体
+  size: 12
+  bold: true
+  align: center
+  valign: center
+  wrap: true
+  border_style: thin
+  border_color: "B4C6E7"
+
+title:
+  fill: "D9E2F3"
+  font_color: "1F3864"
+  size: 16
+  bold: true
+  align: center
+  merge: true
+  border: false
+
+note:
+  size: 10
+  color: "595959"
+  align: left
+  merge: true
+
+body:
+  align: auto
+  border_style: thin
+  border_color: "B4C6E7"
+  zebra: true
+  zebra_color: "F7F9FD"
+  zebra_start: 2
+  total_row_bold: false
+
+rules:
+  three_line: false
+  top_pt: 1.5
+  header_pt: 0.5
+  bottom_pt: 1.5
+  vertical: true
+
+row_height:
+  min_data: 20
+  title_base: 28
+  title_line: 21
+  note_base: 18
+  head_base: 24
+  line: 14.5
+
+col_width:
+  min: 8
+  max: 52
+  pad: 3
+  head_factor: 1.6
+  text_cap: 60
+
+freeze:
+  enabled: auto
+  min_rows: 20
+  anchor: auto
+
+print:
+  orientation: landscape
+  paper: A4
+  title_rows: auto
+  margin_cm: null
+  gridlines: false
+  page_numbers: null
+
+number:
+  format_auto: false
+  align: right
+  zero_as_dash: false
